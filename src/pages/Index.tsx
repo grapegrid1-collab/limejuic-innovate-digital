@@ -109,7 +109,7 @@ const Index = () => {
                 <span className="text-gradient-brand">Web & AI solutions</span> that look stunning and scale beautifully
               </h1>
               <p className="mt-4 text-lg text-muted-foreground max-w-prose">
-                We transform big ideas into sleek, performant products. From modern websites and mobile apps to AI-driven automation, we ship fast with premium craft.
+                From SaaS platforms to AIaaS automation, we design and build next-gen digital products — websites, mobile apps, and cloud solutions — fast, scalable, and crafted with precision.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Button asChild variant="hero">
