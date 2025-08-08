@@ -5,6 +5,10 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// For streaming Edge Function calls we need the full URL and anon key
+const SUPABASE_URL = "https://zinyvsplazwfgmwcvrpa.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inppbnl2c3BsYXp3Zmdtd2N2cnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1OTUzMzIsImV4cCI6MjA3MDE3MTMzMn0.d5pDvhwZJkjIwpmq1JA8KGgzShwDuWC4ptfSeT2axmU";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -67,18 +71,80 @@ const AssistantWidget = () => {
     if (!text || loading) return;
 
     const userMsg: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
     setInput("");
     setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { messages: [...messages, userMsg] },
+
+    const updateAssistant = (chunk: string) => {
+      setMessages((prev) => {
+        const copy = [...prev];
+        // Append to the last message (assistant placeholder)
+        const lastIndex = copy.length - 1;
+        copy[lastIndex] = {
+          role: "assistant",
+          content: copy[lastIndex].content + chunk,
+        };
+        return copy;
       });
-      if (error) throw error;
-      const reply = (data as any)?.text as string;
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    };
+
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({ messages: [...messages, userMsg] }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.text().catch(() => "");
+        try {
+          const j = JSON.parse(err);
+          if (resp.status === 429) {
+            toast.error(j?.error || "Too many requests. Please try again later.");
+          } else {
+            toast.error(j?.error || "Something went wrong");
+          }
+        } catch {
+          toast.error("Something went wrong");
+        }
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) return;
+
       setSpeaking(true);
-      setTimeout(() => setSpeaking(false), 1200);
+      let done = false;
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          // SSE: split by lines and parse data: <token>
+          const lines = chunk.split(/\r?\n/);
+          for (const line of lines) {
+            if (!line.startsWith("data:")) continue;
+            const data = line.slice(5).trim();
+            if (!data || data === "[DONE]") continue;
+            try {
+              const json = JSON.parse(data);
+              const token = json.token ?? json.content ?? json.delta ?? json; // support simple cases
+              if (typeof token === "string") updateAssistant(token);
+              else if (typeof token?.content === "string") updateAssistant(token.content);
+            } catch {
+              // If server already sends plain tokens, just append
+              updateAssistant(data);
+            }
+          }
+        }
+      }
+      setTimeout(() => setSpeaking(false), 800);
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || "Something went wrong");

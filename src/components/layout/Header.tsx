@@ -1,6 +1,35 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const Header = () => {
+  const [active, setActive] = useState<string>("home");
+
+  useEffect(() => {
+    const ids = ["home", "services", "projects", "contact"] as const;
+    const sections = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el);
+
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActive(entry.target.id);
+          }
+        });
+      },
+      { root: null, rootMargin: "0px", threshold: 0.6 }
+    );
+
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const linkCls = (id: string) =>
+    `hover:text-foreground/80 transition-colors ${active === id ? "text-brand" : ""}`;
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
@@ -22,10 +51,10 @@ const Header = () => {
           <span className="text-gradient-brand">Limejuic</span>
         </a>
         <nav aria-label="Primary" className="hidden gap-8 md:flex text-sm">
-          <a href="#home" className="hover:text-foreground/80">Home</a>
-          <a href="#services" className="hover:text-foreground/80">Services</a>
-          <a href="#projects" className="hover:text-foreground/80">Projects</a>
-          <a href="#contact" className="hover:text-foreground/80">Contact</a>
+          <a href="#home" className={linkCls("home")} aria-current={active === "home" ? "page" : undefined}>Home</a>
+          <a href="#services" className={linkCls("services")} aria-current={active === "services" ? "page" : undefined}>Services</a>
+          <a href="#projects" className={linkCls("projects")} aria-current={active === "projects" ? "page" : undefined}>Projects</a>
+          <a href="#contact" className={linkCls("contact")} aria-current={active === "contact" ? "page" : undefined}>Contact</a>
         </nav>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="hidden md:inline-flex">

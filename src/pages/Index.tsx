@@ -11,6 +11,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Please enter your name"),
@@ -40,14 +42,20 @@ const ContactForm = () => {
   });
 
   const onSubmit = async (values: ContactFormValues) => {
-    // Compose a mailto as a simple zero-backend action for now
-    const subject = encodeURIComponent(`New project inquiry from ${values.name}`);
-    const body = encodeURIComponent(`${values.message}\n\n— ${values.name} (${values.email})`);
-    const mailto = `mailto:contact@limejuic.com?subject=${subject}&body=${body}`;
-
-    window.location.href = mailto;
-    toast.success("Thanks! We'll be in touch shortly.");
-    reset();
+    try {
+      const { error } = await supabase.from("contact_submissions").insert({
+        name: values.name,
+        email: values.email,
+        message: values.message,
+      });
+      if (error) throw error;
+      toast.success("Thanks! Your message was received.");
+      reset();
+      // We will also send a confirmation email once email service is configured.
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Could not submit. Please try again.");
+    }
   };
 
   return (
@@ -170,6 +178,40 @@ const Index = () => {
           </div>
         </section>
 
+        {/* FAQ */}
+        <section id="faq" className="container mt-20 md:mt-28">
+          <h2 className="text-2xl md:text-3xl font-semibold">Frequently Asked Questions</h2>
+          <p className="mt-2 text-muted-foreground">Quick answers about our process, timelines, and pricing approach.</p>
+          <div className="mt-6">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="q1">
+                <AccordionTrigger>What services does Limejuic offer?</AccordionTrigger>
+                <AccordionContent>
+                  We design and build modern websites, SaaS platforms, mobile apps, and AI automations — from idea to launch.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q2">
+                <AccordionTrigger>How long does a typical project take?</AccordionTrigger>
+                <AccordionContent>
+                  Most projects take 2–8 weeks depending on scope. MVPs can be shipped faster using our streamlined process.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q3">
+                <AccordionTrigger>How do you price projects?</AccordionTrigger>
+                <AccordionContent>
+                  We offer fixed-price packages for clarity, plus flexible retainers for ongoing work. After a short discovery, we’ll propose the best fit.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q4">
+                <AccordionTrigger>Do you handle hosting and maintenance?</AccordionTrigger>
+                <AccordionContent>
+                  Yes — we set up scalable hosting, analytics, and monitoring. We also offer maintenance plans for updates and improvements.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </section>
+
         {/* Contact */}
         <section id="contact" className="container mt-20 md:mt-28">
           <div className="grid gap-10 md:grid-cols-2 md:items-start">
@@ -197,6 +239,49 @@ const Index = () => {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "What services does Limejuic offer?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "We design and build modern websites, SaaS platforms, mobile apps, and AI automations — from idea to launch."
+                }
+              },
+              {
+                "@type": "Question",
+                name: "How long does a typical project take?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Most projects take 2–8 weeks depending on scope. MVPs can be shipped faster using our streamlined process."
+                }
+              },
+              {
+                "@type": "Question",
+                name: "How do you price projects?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "We offer fixed-price packages for clarity, plus flexible retainers for ongoing work. After a short discovery, we’ll propose the best fit."
+                }
+              },
+              {
+                "@type": "Question",
+                name: "Do you handle hosting and maintenance?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes — we set up scalable hosting, analytics, and monitoring. We also offer maintenance plans for updates and improvements."
+                }
+              }
+            ]
+          })
+        }}
       />
     </>
   );
