@@ -4,7 +4,21 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <a href="#home" className="font-semibold text-lg tracking-tight">
+        <a href="#home" className="font-semibold text-lg tracking-tight inline-flex items-center gap-2" aria-label="Limejuic home">
+          <svg
+            className="size-6 text-brand"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            role="img"
+            aria-label="Lime fruit logo"
+          >
+            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+            <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" strokeWidth="2" />
+            <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" />
+            <line x1="5.64" y1="5.64" x2="18.36" y2="18.36" stroke="currentColor" strokeWidth="2" />
+            <line x1="18.36" y1="5.64" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" />
+          </svg>
           <span className="text-gradient-brand">Limejuic</span>
         </a>
         <nav aria-label="Primary" className="hidden gap-8 md:flex text-sm">
