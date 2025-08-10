@@ -49,9 +49,25 @@ const ContactForm = () => {
         message: values.message,
       });
       if (error) throw error;
+
+      // Fire-and-forget confirmation email; won't block success toast
+      supabase.functions
+        .invoke("send-confirmation", { body: { name: values.name, email: values.email } })
+        .then(({ error }) => {
+          if (!error) {
+            toast.message("Confirmation email sent", { description: "Check your inbox." });
+          } else {
+            console.error(error);
+            toast.message("Message received", { description: "We couldn't send the email." });
+          }
+        })
+        .catch((err) => {
+          console.error("Email error:", err);
+          toast.message("Message received", { description: "Email confirmation failed to send." });
+        });
+
       toast.success("Thanks! Your message was received.");
       reset();
-      // We will also send a confirmation email once email service is configured.
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || "Could not submit. Please try again.");
