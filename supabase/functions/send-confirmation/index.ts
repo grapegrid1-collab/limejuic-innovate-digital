@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "Limejuic <no-reply@limejuic.com>",
+      from: "Limejuic <onboarding@resend.dev>",
       to: [email],
       subject: "We received your message!",
       html: `
